@@ -4,6 +4,7 @@ venv/
 __pycache__/
 */__pycache__/
 *.pt
+*.pkl
 model_weights/
 
 runs/

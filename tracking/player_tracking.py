@@ -1,15 +1,29 @@
 from ultralytics import YOLO
 import torch
 import cv2 
+import pickle
+
 class PlayerTracker:
     def __init__(self, model_path):
         self.model = YOLO(model_path)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    def detect_frames(self, frames):
+        
+        
+    def detect_frames(self, frames, read_from_stub=False, stub_path=None):
         detections = []
+        
+        if read_from_stub and stub_path is not None:
+            with open(stub_path, 'rb') as f:
+                detections = pickle.load(f)
+            return detections
+        
         for frame in frames:
             player_dict = self.detect_frame(frame)
             detections.append(player_dict)
+            
+        if stub_path is not None:
+            with open(stub_path, 'wb') as f:
+                pickle.dump(detections, f)
             
         return detections   
     
