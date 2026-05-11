@@ -1,11 +1,17 @@
 from tracking import BallTracker, PlayerTracker
-from utilities import read_video, save_video
+from utilities import read_video, save_video, KeypointCollector
 
 def main():
     VIDEO_PATH = "input/input_video_shortest.mp4"
     OUTPUT_PATH = "output/output_video.mp4"
     PLAYER_DETECTION_MODEL = "model_weights/person_tracking_best_weight.pt"
     BALL_DETECTION_MODEL = "model_weights/yolov5x_best.pt"
+    
+    
+    # court keypoints collection
+    
+    court_keypoints = KeypointCollector(VIDEO_PATH).collect_keypoints()
+    print("Collected Court Keypoints:", court_keypoints)
 
     frames = read_video(VIDEO_PATH)
     frames_output = []
