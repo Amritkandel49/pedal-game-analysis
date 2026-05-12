@@ -61,7 +61,6 @@ For each frame, the pipeline writes player bounding boxes, ball position, hit fl
 
 **Ball detection with multiple balls in frame.** The spare balls resting under the net were stationary and easy for the detector to pick up, while the fast-moving playing ball was frequently missed. Because the training data had only one ball per frame, the model was not equipped to handle this scenario. Filtering by positional change resolved the issue, but it added complexity to the post-processing.
 
-![multiple_balls](input/multiple_balls.png) 
 
 **Curved court lines from wide-angle lens.** Standard court keypoint detection models trained on conventional footage did not generalize to the curved lines in this video. Manual keypoint collection was used as a practical workaround given the fixed camera position.
 
