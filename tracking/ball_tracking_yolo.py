@@ -13,10 +13,6 @@ class BallTracker:
         
         
     def _extrapolate_continuous_positions(self, df_ball_pos_center, max_extrapolate=4, min_continuous=2):
-        """
-        Extrapolates missing ball positions if there is continuous movement in 
-        preceding or succeeding frames, rather than interpolating between gaps.
-        """
         df_ext = df_ball_pos_center.copy()
         n = len(df_ext)
         
