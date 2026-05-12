@@ -1,14 +1,19 @@
+# from pyglm import row
 from ultralytics import YOLO
 import torch
 import cv2 
 import pickle
+import pandas as pd
+from utilities import convert_to_df, get_euclidean_dist, convert_df_to_detections
+
 
 class PlayerTracker:
-    def __init__(self, model_path, court_keypoints=None):
+    def __init__(self, model_path, court_keypoints=None, expected_players=4):
         self.model = YOLO(model_path)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.court_keypoints = court_keypoints
-        
+        self.expected_players = expected_players
+
         ## x is horizontal and y is vertical components
         if court_keypoints is not None:
             self.far_end_y_avg = (court_keypoints['p1'][1] + court_keypoints['p2'][1]) / 2   ## Upper limit where the player can maximum be located
@@ -33,6 +38,15 @@ class PlayerTracker:
         if read_from_stub and stub_path is not None:
             with open(stub_path, 'rb') as f:
                 detections = pickle.load(f)
+            
+            df_players = convert_to_df(detections)
+            
+            filtered_df = self.filter_player_tracks(df_players)
+            # print(filtered_df.head(5), "\n\n")
+            filtered_df.to_csv("miscellaneous/player_detections.csv", index=False)
+
+            detections = convert_df_to_detections(filtered_df)
+            
             return detections
         
         for frame in frames:
@@ -42,7 +56,17 @@ class PlayerTracker:
         if stub_path is not None:
             with open(stub_path, 'wb') as f:
                 pickle.dump(detections, f)
-            
+                
+        df_players = convert_to_df(detections)
+        
+        filtered_df = self.filter_player_tracks(df_players)
+        # print(filtered_df.head(5), "\n\n")
+        filtered_df.to_csv("miscellaneous/player_detections.csv", index=False)
+        
+        
+        
+        detections = convert_df_to_detections(filtered_df)
+        
         return detections   
     
     def detect_frame(self, frame):
@@ -85,8 +109,59 @@ class PlayerTracker:
         
         for frame, players in zip(frames, player_detections):
             for track_id, (x1, y1, x2, y2) in players.items():
-                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 2)
-                cv2.putText(frame, f'ID: {track_id}', (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                if track_id == "player11" or track_id == "player12":
+                    color = (0, 255, 0)  # green
+                else:
+                    color = (0, 0, 255)  # red
+                cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+                cv2.putText(frame, f'{track_id}', (int(x1), int(y1) - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
             output_frames.append(frame)
         return output_frames 
             
+            
+    
+    def filter_player_tracks(self, df):
+        df = df.copy()
+        top_four_ids = df['id'].value_counts().head(self.expected_players).index
+        df.loc[~df['id'].isin(top_four_ids), 'id'] = pd.NA
+        
+        def bbox_center(row):
+            return ((row["x1"] + row["x2"]) / 2, (row["y1"] + row["y2"]) / 2)
+
+        nan_mask = df["id"].isna()
+
+        for idx, row in df.loc[nan_mask].iterrows():
+            prev_frame = row["frame"] - 1
+            prev_rows = df[(df["frame"] == prev_frame) & df["id"].notna()]
+            
+            if prev_rows.empty:
+                continue
+            
+            cx, cy = bbox_center(row)
+            prev_centers = prev_rows.apply(bbox_center, axis=1)
+            distances = ((prev_centers.apply(lambda p: p[0]) - cx) ** 2 + (prev_centers.apply(lambda p: p[1]) - cy) ** 2) ** 0.5
+            
+            closest_idx = distances.idxmin()
+            df.at[idx, "id"] = df.at[closest_idx, "id"]
+            
+        avg_y_of_center_line_p6p7 = (self.court_keypoints['p6'][1] + self.court_keypoints['p7'][1]) / 2
+            
+        avg_y2_per_id = df.groupby('id')['y2'].mean()
+        
+        id_mapping = {}
+        team1_count = 1
+        team2_count = 1
+        
+        for unique_id, avg_y2 in avg_y2_per_id.items():
+            if avg_y2 > avg_y_of_center_line_p6p7:
+                id_mapping[unique_id] = f"player2{team2_count}"
+                team2_count += 1
+            else:
+                id_mapping[unique_id] = f"player1{team1_count}"
+                team1_count += 1
+                
+        # 4. Apply mapping to the dataframe
+        df['id'] = df['id'].map(id_mapping)
+            
+        return df.sort_values(by=["frame", "id"]).reset_index(drop=True)
+        

@@ -155,9 +155,9 @@ class BallTracker:
             
             for track_id, (x_center, y_center) in ball_dict.items():
                 if pd.notna(x_center) and pd.notna(y_center):
-                    cv2.circle(frame, (int(x_center), int(y_center)), 10, (0, 0, 255), 1)
+                    cv2.circle(frame, (int(x_center), int(y_center)), 10, (0, 255, 255), 2) #yellow
                     
-                    cv2.putText(frame, f'ID: {track_id}', (int(x_center), int(y_center) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                    # cv2.putText(frame, f'ID: {track_id}', (int(x_center), int(y_center) - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
         
             output_video_frames.append(frame)
         
