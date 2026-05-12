@@ -1,5 +1,6 @@
 from tracking import BallTracker, PlayerTracker
 from utilities import read_video, save_video, KeypointCollector
+from shot_classification import detect_hits
 
 def main():
     VIDEO_PATH = "input/input_video_shortest.mp4"
@@ -27,6 +28,7 @@ def main():
     ball_detections = ball_tracker.detect_frames(frames, read_from_stub=True, stub_path="preloaded_detections/ball_detections_stub.pkl")
     
 
+    hit_events = detect_hits(ball_detections, player_detections)
     # print("Player Detections:", player_detections)
     # print('\n', "-"*20, '\n')
     # print("Ball Detections:", ball_detections) 

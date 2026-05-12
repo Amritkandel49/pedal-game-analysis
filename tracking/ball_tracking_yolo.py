@@ -5,10 +5,12 @@ import pickle
 import pandas as pd
 import numpy as np
 
+
 class BallTracker:
     def __init__(self, model_path):
         self.model = YOLO(model_path)
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
         
     def _extrapolate_continuous_positions(self, df_ball_pos_center, max_extrapolate=4, min_continuous=2):
         """
